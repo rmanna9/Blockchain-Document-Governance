@@ -1,0 +1,42 @@
+{
+  "name": "blockchain-document-governance",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rmanna9/Blockchain-Document-Governance.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/rmanna9/Blockchain-Document-Governance/issues"
+  },
+  "homepage": "https://github.com/rmanna9/Blockchain-Document-Governance#readme",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ignition": "^3.1.6",
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.6",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^22.19.19",
+    "forge-std": "github:foundry-rs/forge-std#v1.9.4",
+    "hardhat": "^3.5.1",
+    "tsx": "^4.22.3",
+    "typescript": "~6.0.3",
+    "viem": "^2.50.4"
+  },
+  "dependencies": {
+    "@helia/unixfs": "^7.2.1",
+    "@libp2p/crypto": "^5.1.18",
+    "blockstore-fs": "^4.0.1",
+    "express": "^5.2.1",
+    "helia": "^6.1.4",
+    "jsonwebtoken": "^9.0.3",
+    "shamirs-secret-sharing": "^2.0.1"
+  }
+}
