@@ -23,9 +23,10 @@ contract KeyShareRegistry {
 
     struct ShareSet {
         bool    exists;
-        uint256 threshold;        // t = ceil(2N/3)
-        uint256 totalShares;      // N at the time of archival
-        mapping(address => EncryptedShare) shares;  // authorityAddress => share
+        uint256 threshold;
+        uint256 totalShares;
+        bytes   encryptedKey;   // E_A = Enc(pk_A, k_doc) — solo authority certificante
+        mapping(address => EncryptedShare) shares;
         address[] authorityList;
     }
 
@@ -74,7 +75,8 @@ contract KeyShareRegistry {
         address[] calldata authorityAddresses,
         uint256[] calldata shareIndices,
         bytes[]   calldata encryptedShares,
-        uint256            threshold
+        uint256            threshold,
+        bytes     calldata encryptedKey     
     ) external onlyAuthority {
         require(!_shareSets[documentHash].exists,                        "KSR: shares already stored");
         require(authorityAddresses.length > 0,                           "KSR: empty authority list");
@@ -86,6 +88,7 @@ contract KeyShareRegistry {
         ss.exists      = true;
         ss.threshold   = threshold;
         ss.totalShares = authorityAddresses.length;
+        ss.encryptedKey = encryptedKey;
 
         for (uint256 i = 0; i < authorityAddresses.length; i++) {
             require(authorityAddresses[i] != address(0), "KSR: zero authority address");
@@ -126,6 +129,13 @@ contract KeyShareRegistry {
         EncryptedShare storage share = ss.shares[authorityAddress];
         require(share.authorityAddress != address(0), "KSR: share not found");
         return share;
+    }
+
+    function getEncryptedKey(bytes32 documentHash)
+        external view returns (bytes memory)
+    {
+        require(_shareSets[documentHash].exists, "KSR: shares not found");
+        return _shareSets[documentHash].encryptedKey;
     }
 
     function getThreshold(bytes32 documentHash) external view returns (uint256) {

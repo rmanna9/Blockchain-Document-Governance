@@ -56,13 +56,11 @@ describe("KeyShareRegistry", async () => {
     await documentRegistry.write.setGovernanceContract([governance.address]);
     await accessControl.write.setGovernanceContract([governance.address]);
 
-    // Register user1 under authorityA
+    // Register user1 under authorityA and certify a document
     await didRegistry.write.registerUser(
       ["did:consortium:user-1", "pk-u1", "rk-u1", user1.account.address, 0n],
       { account: authorityA.account }
     );
-
-    // Grant canCreate and certify a document
     await accessControl.write.grantCreate(
       ["did:consortium:user-1", 0n],
       { account: authorityA.account }
@@ -87,13 +85,14 @@ describe("KeyShareRegistry", async () => {
       authorityB.account.address,
       authorityC.account.address,
     ] as `0x${string}`[];
-    const shareIndices = [1n, 2n, 3n];
+    const shareIndices    = [1n, 2n, 3n];
     const encryptedShares = [
       toHex(toBytes("enc-share-a")),
       toHex(toBytes("enc-share-b")),
       toHex(toBytes("enc-share-c")),
     ] as `0x${string}`[];
-    const threshold = 2n; // ceil(2*3/3) = 2
+    const threshold    = 2n;
+    const encryptedKey = toHex(toBytes("enc-kdoc-a")) as `0x${string}`; // E_A = Enc(pk_A, k_doc)
 
     return {
       keyShareRegistry,
@@ -115,16 +114,17 @@ describe("KeyShareRegistry", async () => {
       shareIndices,
       encryptedShares,
       threshold,
+      encryptedKey,
     };
   }
 
   // ── Archival Phase 4: storeShares ─────────────────────────────────────────
 
-  it("should store shares for a certified document — Archival Phase 4", async () => {
+  it("should store shares and E_A for a certified document — Archival Phase 4", async () => {
     const ctx = await setup();
 
     await ctx.keyShareRegistry.write.storeShares(
-      [ctx.docHash, ctx.authorityAddresses, ctx.shareIndices, ctx.encryptedShares, ctx.threshold],
+      [ctx.docHash, ctx.authorityAddresses, ctx.shareIndices, ctx.encryptedShares, ctx.threshold, ctx.encryptedKey],
       { account: ctx.authorityA.account }
     );
 
@@ -137,7 +137,7 @@ describe("KeyShareRegistry", async () => {
     const ctx = await setup();
 
     await ctx.keyShareRegistry.write.storeShares(
-      [ctx.docHash, ctx.authorityAddresses, ctx.shareIndices, ctx.encryptedShares, ctx.threshold],
+      [ctx.docHash, ctx.authorityAddresses, ctx.shareIndices, ctx.encryptedShares, ctx.threshold, ctx.encryptedKey],
       { account: ctx.authorityA.account }
     );
 
@@ -153,12 +153,24 @@ describe("KeyShareRegistry", async () => {
     assert.equal(shareC.shareIndex, 3n);
   });
 
+  it("should store and retrieve E_A correctly — Archival Phase 4", async () => {
+    const ctx = await setup();
+
+    await ctx.keyShareRegistry.write.storeShares(
+      [ctx.docHash, ctx.authorityAddresses, ctx.shareIndices, ctx.encryptedShares, ctx.threshold, ctx.encryptedKey],
+      { account: ctx.authorityA.account }
+    );
+
+    const storedKey = await ctx.keyShareRegistry.read.getEncryptedKey([ctx.docHash]);
+    assert.equal(storedKey, ctx.encryptedKey);
+  });
+
   it("should reject storeShares from non-authority", async () => {
     const ctx = await setup();
 
     await assert.rejects(
       ctx.keyShareRegistry.write.storeShares(
-        [ctx.docHash, ctx.authorityAddresses, ctx.shareIndices, ctx.encryptedShares, ctx.threshold],
+        [ctx.docHash, ctx.authorityAddresses, ctx.shareIndices, ctx.encryptedShares, ctx.threshold, ctx.encryptedKey],
         { account: ctx.outsider.account }
       )
     );
@@ -168,13 +180,13 @@ describe("KeyShareRegistry", async () => {
     const ctx = await setup();
 
     await ctx.keyShareRegistry.write.storeShares(
-      [ctx.docHash, ctx.authorityAddresses, ctx.shareIndices, ctx.encryptedShares, ctx.threshold],
+      [ctx.docHash, ctx.authorityAddresses, ctx.shareIndices, ctx.encryptedShares, ctx.threshold, ctx.encryptedKey],
       { account: ctx.authorityA.account }
     );
 
     await assert.rejects(
       ctx.keyShareRegistry.write.storeShares(
-        [ctx.docHash, ctx.authorityAddresses, ctx.shareIndices, ctx.encryptedShares, ctx.threshold],
+        [ctx.docHash, ctx.authorityAddresses, ctx.shareIndices, ctx.encryptedShares, ctx.threshold, ctx.encryptedKey],
         { account: ctx.authorityA.account }
       )
     );
@@ -185,7 +197,7 @@ describe("KeyShareRegistry", async () => {
 
     await assert.rejects(
       ctx.keyShareRegistry.write.storeShares(
-        [ctx.docHash, ctx.authorityAddresses, ctx.shareIndices, ctx.encryptedShares, 0n],
+        [ctx.docHash, ctx.authorityAddresses, ctx.shareIndices, ctx.encryptedShares, 0n, ctx.encryptedKey],
         { account: ctx.authorityA.account }
       )
     );
@@ -196,7 +208,7 @@ describe("KeyShareRegistry", async () => {
 
     await assert.rejects(
       ctx.keyShareRegistry.write.storeShares(
-        [ctx.docHash, ctx.authorityAddresses, ctx.shareIndices, ctx.encryptedShares, 4n],
+        [ctx.docHash, ctx.authorityAddresses, ctx.shareIndices, ctx.encryptedShares, 4n, ctx.encryptedKey],
         { account: ctx.authorityA.account }
       )
     );
@@ -210,9 +222,10 @@ describe("KeyShareRegistry", async () => {
         [
           ctx.docHash,
           ctx.authorityAddresses,
-          [1n, 2n], // only 2 indices for 3 authorities
+          [1n, 2n],
           ctx.encryptedShares,
-          ctx.threshold
+          ctx.threshold,
+          ctx.encryptedKey,
         ],
         { account: ctx.authorityA.account }
       )
@@ -230,24 +243,25 @@ describe("KeyShareRegistry", async () => {
           ctx.shareIndices,
           [
             toHex(toBytes("enc-share-a")),
-            "0x" as `0x${string}`, // empty share
+            "0x" as `0x${string}`,
             toHex(toBytes("enc-share-c")),
           ],
-          ctx.threshold
+          ctx.threshold,
+          ctx.encryptedKey,
         ],
         { account: ctx.authorityA.account }
       )
     );
   });
 
-  // ── Retrieval Phase 2: getShare ───────────────────────────────────────────
+  // ── Retrieval: getEncryptedKey ────────────────────────────────────────────
 
-  it("should return shares not found for unknown document", async () => {
+  it("should return error for unknown document on getEncryptedKey", async () => {
     const ctx = await setup();
     const unknownHash = keccak256(toBytes("unknown"));
 
     await assert.rejects(
-      ctx.keyShareRegistry.read.getShare([unknownHash, ctx.authorityA.account.address])
+      ctx.keyShareRegistry.read.getEncryptedKey([unknownHash])
     );
   });
 
@@ -255,7 +269,7 @@ describe("KeyShareRegistry", async () => {
     const ctx = await setup();
 
     await ctx.keyShareRegistry.write.storeShares(
-      [ctx.docHash, ctx.authorityAddresses, ctx.shareIndices, ctx.encryptedShares, ctx.threshold],
+      [ctx.docHash, ctx.authorityAddresses, ctx.shareIndices, ctx.encryptedShares, ctx.threshold, ctx.encryptedKey],
       { account: ctx.authorityA.account }
     );
 
@@ -264,28 +278,27 @@ describe("KeyShareRegistry", async () => {
     );
   });
 
-  // ── Revocation does not prevent share storage but blocks retrieval ─────────
+  // ── Revocation blocks retrieval ───────────────────────────────────────────
 
-  it("shares remain on-chain after revocation but ReadApproved is blocked — WP2 §Revocation", async () => {
+  it("shares and E_A remain on-chain after revocation but ReadApproved is blocked — WP2 §Revocation", async () => {
     const ctx = await setup();
 
-    // Store shares
     await ctx.keyShareRegistry.write.storeShares(
-      [ctx.docHash, ctx.authorityAddresses, ctx.shareIndices, ctx.encryptedShares, ctx.threshold],
+      [ctx.docHash, ctx.authorityAddresses, ctx.shareIndices, ctx.encryptedShares, ctx.threshold, ctx.encryptedKey],
       { account: ctx.authorityA.account }
     );
 
-    // Revoke document
     await ctx.documentRegistry.write.revoke(
       [ctx.docHash, "policy violation"],
       { account: ctx.authorityA.account }
     );
 
-    // Shares still exist on-chain — KeyShareRegistry is unaffected
+    // Shares and E_A still exist on-chain
     assert.equal(await ctx.keyShareRegistry.read.sharesExist([ctx.docHash]), true);
+    const storedKey = await ctx.keyShareRegistry.read.getEncryptedKey([ctx.docHash]);
+    assert.equal(storedKey, ctx.encryptedKey);
 
-    // But retrieval is blocked at the gate — checkAndApproveRead fails
-    // No ReadApproved event is emitted — authority nodes will never release shares
+    // But retrieval is blocked at the gate
     await assert.rejects(
       ctx.accessControl.write.checkAndApproveRead(
         [ctx.docHash],
@@ -298,12 +311,11 @@ describe("KeyShareRegistry", async () => {
     const ctx = await setup();
 
     await ctx.keyShareRegistry.write.storeShares(
-      [ctx.docHash, ctx.authorityAddresses, ctx.shareIndices, ctx.encryptedShares, ctx.threshold],
+      [ctx.docHash, ctx.authorityAddresses, ctx.shareIndices, ctx.encryptedShares, ctx.threshold, ctx.encryptedKey],
       { account: ctx.authorityA.account }
     );
 
-    // N=3, t=ceil(2*3/3)=2
     const threshold = await ctx.keyShareRegistry.read.getThreshold([ctx.docHash]);
-    assert.equal(threshold, 2n);
+    assert.equal(threshold, 2n); // ceil(2*3/3) = 2
   });
 });

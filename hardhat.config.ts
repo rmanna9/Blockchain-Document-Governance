@@ -24,6 +24,11 @@ export default defineConfig({
     },
   },
   networks: {
+    ganache: {
+      type: "http",
+      chainType: "l1",
+      url: "http://ganache:8545",
+    },
     hardhatMainnet: {
       type: "edr-simulated",
       chainType: "l1",
