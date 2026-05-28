@@ -7,9 +7,9 @@ import {
   resolveDID,
   getActivePublicKey,
   getRecord,
-} from "../contracts.js";
-import { certifyDocument, retrieveDocument } from "../api.js";
-import { verifyAuthoritySignature, decryptChallenge } from "../crypto.js";
+} from "../src/contracts.js";
+import { certifyDocument, retrieveDocument } from "../src/api.js";
+import { verifyAuthoritySignature, decryptChallenge } from "../src/crypto.js";
 
 /**
  * External Verification scenario.

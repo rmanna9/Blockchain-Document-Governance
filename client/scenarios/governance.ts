@@ -3,8 +3,8 @@ import {
   initClientContracts,
   requestCertification,
   checkAndApproveRead,
-} from "../contracts.js";
-import { certifyDocument, forcedRead } from "../api.js";
+} from "../src/contracts.js";
+import { certifyDocument, forcedRead } from "../src/api.js";
 
 /**
  * Governance scenario.

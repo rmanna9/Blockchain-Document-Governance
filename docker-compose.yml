@@ -9,6 +9,7 @@ volumes:
   keys-a:          # RSA keypair for authority-a
   keys-b:          # RSA keypair for authority-b
   keys-c:          # RSA keypair for authority-c
+  keys-user:       # RSA keypair for user
 
 # ── Network ────────────────────────────────────────────────────────────────────
 networks:
@@ -35,10 +36,11 @@ services:
       --host 0.0.0.0
       --port 8545
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8545"]
-      interval: 3s
-      timeout: 5s
-      retries: 10
+          test: ["CMD", "node", "-e",
+                "require('http').get('http://localhost:8545', r => process.exit(r.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))"]
+          interval: 3s
+          timeout: 5s
+          retries: 10
 
   # ── Authority A — generates keys before deployer starts ──────────────────────
   authority-a-keygen:
@@ -55,9 +57,11 @@ services:
       AUTHORITY_DID:   "did:consortium:authority-a"
       AUTHORITY_ADDR:  "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
       ETH_PRIVATE_KEY: "59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+      AUTHORITY_NAME: "authority-a"
       KEYS_DIR:        "/data/keys"
       RPC_URL:         "http://ganache:8545"
-    command: ["node", "scripts/keygen.js"]
+    entrypoint: ["node"]
+    command: ["scripts/keygen.js"]
 
   authority-b-keygen:
     build:
@@ -73,8 +77,10 @@ services:
       AUTHORITY_DID:   "did:consortium:authority-b"
       AUTHORITY_ADDR:  "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
       ETH_PRIVATE_KEY: "5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"
+      AUTHORITY_NAME: "authority-b"
       KEYS_DIR:        "/data/keys"
-    command: ["node", "scripts/keygen.js"]
+    entrypoint: ["node"]
+    command: ["scripts/keygen.js"]
 
   authority-c-keygen:
     build:
@@ -90,8 +96,10 @@ services:
       AUTHORITY_DID:   "did:consortium:authority-c"
       AUTHORITY_ADDR:  "0x90F79bf6EB2c4f870365E785982E1f101E93b906"
       ETH_PRIVATE_KEY: "7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6"
+      AUTHORITY_NAME: "authority-c"
       KEYS_DIR:        "/data/keys"
-    command: ["node", "scripts/keygen.js"]
+    entrypoint: ["node"]
+    command: ["scripts/keygen.js"]
 
   # ── Deployer — deploy contracts + admit authority containers ─────────────────
   deployer:
@@ -116,6 +124,8 @@ services:
       authority-b-keygen:
         condition: service_completed_successfully
       authority-c-keygen:
+        condition: service_completed_successfully
+      user-keygen:                              
         condition: service_completed_successfully
 
   # ── Authority A ───────────────────────────────────────────────────────────────
@@ -226,6 +236,21 @@ services:
       timeout: 5s
       retries: 10
 
+# ── User Keygen — generates user keys before client starts ───────────────────
+  user-keygen:
+    build:
+      context: .
+      dockerfile: Dockerfile.authority
+    container_name: user-keygen
+    networks:
+      - consortium
+    volumes:
+      - keys-user:/data/user-keys
+    environment:
+      KEYS_DIR: "/data/user-keys"
+    entrypoint: ["node"]
+    command: ["scripts/user-keygen.js"]
+
   # ── Client — scenario runner ───────────────────────────────────────────────────
   client:
     build:
@@ -236,11 +261,15 @@ services:
       - consortium
     volumes:
       - shared:/shared
+      - keys-user:/data/user-keys
     environment:
-      RPC_URL:       "http://ganache:8545"
-      ADDRESSES:     "/shared/addresses.json"
-      AUTHORITY_URL: "http://authority-a:3000"
-      SCENARIO:      "${SCENARIO:-full-lifecycle}"
+      RPC_URL:          "http://ganache:8545"
+      ADDRESSES:        "/shared/addresses.json"
+      AUTHORITY_URL:    "http://authority-a:3000"
+      SCENARIO:         "${SCENARIO:-full-lifecycle}"
+      PRIVATE_KEY:      "47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a"
+      USER_DID:         "did:consortium:user-1"
+      USER_KEYS_DIR:    "/data/user-keys"
     depends_on:
       authority-a:
         condition: service_healthy
@@ -248,3 +277,5 @@ services:
         condition: service_healthy
       authority-c:
         condition: service_healthy
+      user-keygen:
+        condition: service_completed_successfully

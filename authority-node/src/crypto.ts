@@ -220,3 +220,29 @@ export function decryptDocument(encrypted: EncryptedDocument, key: Buffer): Buff
   decipher.setAuthTag(encrypted.authTag);
   return Buffer.concat([decipher.update(encrypted.ciphertext), decipher.final()]);
 }
+
+/**
+ * Verify a signature produced by signDocumentHash.
+ * Used by the auth module to verify nonce signatures.
+ *
+ * @param data          The original data (nonce as Buffer)
+ * @param signature     Signature Buffer to verify
+ * @param publicKeyPem  Signer's public key (PEM)
+ * @returns             true if signature is valid
+ */
+export function verifySignature(
+  data:         Buffer,
+  signature:    Buffer,
+  publicKeyPem: string
+): boolean {
+  try {
+    return crypto.verify(
+      "sha256",
+      data,
+      { key: publicKeyPem, padding: crypto.constants.RSA_PKCS1_PSS_PADDING },
+      signature
+    );
+  } catch {
+    return false;
+  }
+}

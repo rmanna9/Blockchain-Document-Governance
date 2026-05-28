@@ -3,11 +3,12 @@ import { privateKeyToAccount } from "viem/accounts";
 import { hardhat } from "viem/chains";
 import { readFileSync } from "fs";
 
-import DIDRegistryABI           from "../../artifacts/contracts/DIDRegistry.sol/DIDRegistry.json" assert { type: "json" };
-import DocumentRegistryABI      from "../../artifacts/contracts/DocumentRegistry.sol/DocumentRegistry.json" assert { type: "json" };
-import DocumentAccessControlABI from "../../artifacts/contracts/DocumentAccessControl.sol/DocumentAccessControl.json" assert { type: "json" };
-import GovernanceContractABI    from "../../artifacts/contracts/GovernanceContract.sol/GovernanceContract.json" assert { type: "json" };
-import KeyShareRegistryABI      from "../../artifacts/contracts/KeyShareRegistry.sol/KeyShareRegistry.json" assert { type: "json" };
+import DIDRegistryABI         from "../../artifacts/contracts/DIDRegistry.sol/DIDRegistry.json" with { type: "json" };
+import DocumentRegistryABI    from "../../artifacts/contracts/DocumentRegistry.sol/DocumentRegistry.json" with { type: "json" };
+import DocumentAccessControlABI from "../../artifacts/contracts/DocumentAccessControl.sol/DocumentAccessControl.json" with { type: "json" };
+import KeyShareRegistryABI    from "../../artifacts/contracts/KeyShareRegistry.sol/KeyShareRegistry.json" with { type: "json" };
+import GovernanceContractABI  from "../../artifacts/contracts/GovernanceContract.sol/GovernanceContract.json" with { type: "json" };
+import AuditLogABI            from "../../artifacts/contracts/AuditLog.sol/AuditLog.json" with { type: "json" };
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

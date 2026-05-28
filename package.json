@@ -34,6 +34,7 @@
     "@helia/unixfs": "^7.2.1",
     "@libp2p/crypto": "^5.1.18",
     "blockstore-fs": "^4.0.1",
+    "datastore-fs": "^10.0.0",    
     "express": "^5.2.1",
     "helia": "^6.1.4",
     "jsonwebtoken": "^9.0.3",

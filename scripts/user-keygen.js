@@ -1,21 +1,20 @@
 import { generateKeyPairSync } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync, readFileSync } from "fs";
 
-const keysDir   = process.env.KEYS_DIR   ?? "/data/keys";
+const keysDir   = process.env.KEYS_DIR   ?? "/data/user-keys";
 const sharedDir = process.env.SHARED_DIR ?? "/shared";
-const name      = process.env.AUTHORITY_NAME ?? "authority";
 
 mkdirSync(keysDir,   { recursive: true });
 mkdirSync(sharedDir, { recursive: true });
 
 const privateKeyPath = `${keysDir}/private.pem`;
 const publicKeyPath  = `${keysDir}/public.pem`;
-const sharedKeyPath  = `${sharedDir}/pk-${name}.pem`;
+const sharedPubPath  = `${sharedDir}/user-public.pem`;
 
 if (!existsSync(privateKeyPath)) {
-  console.log(`Generating RSA-4096 keypair for ${name}...`);
+  console.log("Generating RSA-2048 keypair for user...");
   const { privateKey, publicKey } = generateKeyPairSync("rsa", {
-    modulusLength: 4096,
+    modulusLength: 2048,
     publicKeyEncoding:  { type: "spki",  format: "pem" },
     privateKeyEncoding: { type: "pkcs8", format: "pem" },
   });
@@ -23,9 +22,10 @@ if (!existsSync(privateKeyPath)) {
   writeFileSync(publicKeyPath,  publicKey);
   console.log(`Keypair saved to ${keysDir}`);
 } else {
-  console.log(`Keys already exist for ${name} — loading...`);
+  console.log("User keys already exist — skipping.");
 }
 
+// Always write public key to shared volume for deployer
 const publicKey = readFileSync(publicKeyPath, "utf-8");
-writeFileSync(sharedKeyPath, publicKey);
-console.log(`Public key written to ${sharedKeyPath}`);
+writeFileSync(sharedPubPath, publicKey);
+console.log(`Public key written to ${sharedPubPath}`);

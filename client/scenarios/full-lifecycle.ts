@@ -1,6 +1,6 @@
 import { keccak256, toBytes, toHex } from "viem";
-import { initClientContracts, requestCertification, checkAndApproveRead } from "../contracts.js";
-import { certifyDocument, retrieveDocument, checkHealth } from "../api.js";
+import { initClientContracts, requestCertification, checkAndApproveRead } from "../src/contracts.js";
+import { certifyDocument, retrieveDocument, checkHealth } from "../src/api.js";
 import { readFileSync } from "fs";
 
 /**
@@ -20,9 +20,10 @@ async function main() {
   const AUTHORITY_URL = process.env.AUTHORITY_URL ?? "http://localhost:3001";
   const PRIVATE_KEY   = process.env.PRIVATE_KEY   ?? "";
   const USER_DID      = process.env.USER_DID      ?? "";
-  const USER_PK_PEM   = process.env.USER_PK_PEM   ?? "";
+  const USER_KEYS_DIR = process.env.USER_KEYS_DIR ?? "/data/user-keys";
+  const USER_PK_PEM   = readFileSync(`${USER_KEYS_DIR}/private.pem`, "utf-8");
 
-  if (!PRIVATE_KEY || !USER_DID || !USER_PK_PEM) {
+  if (!PRIVATE_KEY || !USER_DID) {
     console.error("Missing required environment variables");
     process.exit(1);
   }

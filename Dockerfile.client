@@ -14,4 +14,4 @@ COPY client/ ./client/
 # Compile TypeScript
 RUN npx tsc --project tsconfig.json || true
 
-ENTRYPOINT ["sh", "-c", "node client/src/scenarios/${SCENARIO:-full-lifecycle}.js"]
+ENTRYPOINT ["sh", "-c", "node dist/client/scenarios/${SCENARIO:-full-lifecycle}.js"]

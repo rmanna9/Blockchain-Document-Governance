@@ -97,19 +97,65 @@ async function main() {
   // ── Wire up contracts ────────────────────────────────────────────────────
   console.log("\n[Setup] Wiring contracts...");
 
-  await didRegistry.write.setGovernanceContract([governance.address]);
-  await didRegistry.write.setAccessControl([accessControl.address]);
-  await documentRegistry.write.setAccessControl([accessControl.address]);
-  await documentRegistry.write.setGovernanceContract([governance.address]);
-  await accessControl.write.setGovernanceContract([governance.address]);
+  const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-  await auditLog.write.addWriter([didRegistry.address]);
-  await auditLog.write.addWriter([governance.address]);
-  await auditLog.write.addWriter([documentRegistry.address]);
-  await auditLog.write.addWriter([accessControl.address]);
-  await auditLog.write.addWriter([keyShareRegistry.address]);
-  await auditLog.write.renounceAdmin();
+  async function sendTx(fn: () => Promise<`0x${string}`>, label: string) {
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      try {
+        const hash = await fn();
+        console.log(`  ✓ ${label}`);
+        return hash;
+      } catch (e: any) {
+        console.warn(`  ✗ ${label} (attempt ${attempt}/5): ${e.shortMessage ?? e.message}`);
+        if (attempt < 5) await sleep(2000 * attempt);
+        else throw e;
+      }
+    }
+  }
+
+  await sendTx(() => didRegistry.write.setGovernanceContract([governance.address]), "didRegistry.setGovernanceContract");
+  await sendTx(() => didRegistry.write.setAccessControl([accessControl.address]), "didRegistry.setAccessControl");
+  await sendTx(() => documentRegistry.write.setAccessControl([accessControl.address]), "documentRegistry.setAccessControl");
+  await sendTx(() => documentRegistry.write.setGovernanceContract([governance.address]), "documentRegistry.setGovernanceContract");
+  await sendTx(() => accessControl.write.setGovernanceContract([governance.address]), "accessControl.setGovernanceContract");
+
+  await sendTx(() => auditLog.write.addWriter([didRegistry.address]), "auditLog.addWriter(didRegistry)");
+  await sendTx(() => auditLog.write.addWriter([governance.address]), "auditLog.addWriter(governance)");
+  await sendTx(() => auditLog.write.addWriter([documentRegistry.address]), "auditLog.addWriter(documentRegistry)");
+  await sendTx(() => auditLog.write.addWriter([accessControl.address]), "auditLog.addWriter(accessControl)");
+  await sendTx(() => auditLog.write.addWriter([keyShareRegistry.address]), "auditLog.addWriter(keyShareRegistry)");
+  await sendTx(() => auditLog.write.renounceAdmin(), "auditLog.renounceAdmin");
+
   console.log("AuditLog writers frozen.");
+
+  // ── Register test user ───────────────────────────────────────────────────
+  console.log("\n[Setup] Registering test user...");
+
+  const [,,,, userAccount] = await viem.getWalletClients();
+
+  let userPublicKey: string;
+  try {
+    userPublicKey = readFileSync("/shared/user-public.pem", "utf-8");
+    console.log("User RSA public key loaded from /shared");
+  } catch {
+    userPublicKey = "pk-user-placeholder";
+    console.warn("User RSA key not found — using placeholder");
+  }
+
+  await sendTx(
+    () => didRegistry.write.registerUser(
+      [
+        "did:consortium:user-1",
+        userPublicKey,
+        userPublicKey,
+        userAccount.account.address,
+        0n,
+      ],
+      { account: authorityA.account }
+    ),
+    "didRegistry.registerUser(user-1)"
+  );
+  console.log("Test user registered.");
 
   // ── Save addresses ───────────────────────────────────────────────────────
   const addresses = {

@@ -5,8 +5,8 @@ import {
   checkAndApproveRead,
   delegate,
   hasPermission,
-} from "../contracts.js";
-import { certifyDocument, retrieveDocument } from "../api.js";
+} from "../src/contracts.js";
+import { certifyDocument, retrieveDocument } from "../src/api.js";
 
 /**
  * Delegation scenario.
