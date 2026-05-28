@@ -282,3 +282,14 @@ export async function getReadApprovedEventsFromDAC(
     fromBlock,
   });
 }
+
+export async function canPresentExternally(
+  contracts:    ContractClients, // o ClientContracts
+  holderDID:    string,
+  documentHash: `0x${string}`
+): Promise<boolean> {
+  return contracts.accessControl.read.canPresentExternally([
+    holderDID,
+    documentHash,
+  ]) as Promise<boolean>;
+}

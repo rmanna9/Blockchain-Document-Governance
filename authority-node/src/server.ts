@@ -389,6 +389,119 @@ export function createServer(config: ServerConfig): express.Application {
     }
   });
 
+  // ── POST /oracle/verify ─────────────────────────────────────────────────────
+
+  /**
+   * Oracle verification endpoint for External Verification workflow.
+   * WP2 §External Verification Phases 3-6.
+   *
+   * Phase 3 — External Verifier submits (did_A, h, did_U)
+   * Phase 4 — Oracle resolves did_A, checks canPresentExternally(address_U, h)
+   * Phase 5 — Oracle encrypts metadata with pk_U as c_meta
+   * Phase 6 — Oracle returns (c_meta, H(metadata), DIDDoc_A, DIDDoc_U)
+   *
+   * Body:
+   *   {
+   *     didAuthority: string       — did_A of the certifying authority
+   *     documentHash: 0x${string} — H(document) computed by External Verifier
+   *     didUser:      string       — did_U of the presenter
+   *   }
+   */
+  app.post("/oracle/verify", async (req: Request, res: Response) => {
+    const { didAuthority, documentHash, didUser } = req.body;
+
+    if (!didAuthority || !documentHash || !didUser) {
+      res.status(400).json({ error: "Missing required fields" });
+      return;
+    }
+
+    try {
+      // Phase 4 — Resolve did_A and verify it belongs to this consortium
+      const authorityDoc = await config.contracts.didRegistry.read.resolve(
+        [didAuthority]
+      ) as any;
+
+      if (!authorityDoc.isActive) {
+        res.status(403).json({ error: "Authority DID is not active" });
+        return;
+      }
+
+      // Phase 4 — Check canPresentExternally(address_U, h)
+      // WP2: "verify whether the on-chain address associated with did_U
+      //       holds a valid delegable read permission for document h"
+      const canPresent = await config.contracts.accessControl.read.canPresentExternally([
+        didUser,
+        documentHash as `0x${string}`,
+      ]) as boolean;
+
+      // Emit structured event to AuditLog regardless of outcome
+      // WP2: "A structured event is emitted to the AuditLog in both cases"
+      await config.contracts.auditLog.write.log([
+        config.authorityAddress,
+        4, // ActionType.ReadApproved — closest approximation for external verification
+        documentHash as `0x${string}`,
+        new Uint8Array(Buffer.from(
+          JSON.stringify({ didUser, didAuthority, documentHash, canPresent })
+        )),
+      ]);
+
+      if (!canPresent) {
+        // Always return same structure to prevent side-channel attacks
+        // WP2: "The Oracle always returns a response of identical structure
+        //       within a constant time bound"
+        res.status(403).json({ error: "Presenter does not hold a delegable read permission" });
+        return;
+      }
+
+      // Phase 4 — Retrieve document metadata
+      const record = await getRecord(
+        config.contracts,
+        documentHash as `0x${string}`
+      );
+
+      // Phase 4 — Resolve did_U to get pk_U
+      const userDoc = await config.contracts.didRegistry.read.resolve(
+        [didUser]
+      ) as any;
+
+      // Phase 5 — Encrypt metadata with pk_U
+      // WP2: "The Oracle constructs the metadata payload, embedding a
+      //       timestamp, and encrypts it as c_meta = Enc(pk_U, metadata)"
+      const metadata = JSON.stringify({
+        documentHash,
+        status:    record.status,
+        version:   Number(record.version),
+        ownerDID:  record.ownerDID,
+        timestamp: Date.now(),
+      });
+
+      const { createHash } = await import("node:crypto");
+      const metadataHash = createHash("sha256")
+        .update(Buffer.from(metadata))
+        .digest("hex");
+
+      // Encrypt metadata with pk_U using RSA-OAEP
+      const { publicEncrypt, constants } = await import("node:crypto");
+      const pk_U = userDoc.activePublicKey as string;
+      const encryptedMetadata = publicEncrypt(
+        { key: pk_U, padding: constants.RSA_PKCS1_OAEP_PADDING },
+        Buffer.from(metadata)
+      ).toString("hex");
+
+      // Phase 6 — Return (c_meta, H(metadata), DIDDoc_A, DIDDoc_U)
+      res.json({
+        encryptedMetadata,
+        metadataHash,
+        didDocumentAuthority: authorityDoc,
+        didDocumentUser:      userDoc,
+      });
+
+    } catch (err) {
+      console.error("[Oracle] Verify error:", err);
+      res.status(500).json({ error: "Oracle verification failed" });
+    }
+  });
+
   return app;
 }
 

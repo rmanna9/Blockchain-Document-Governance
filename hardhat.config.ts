@@ -10,6 +10,10 @@ export default defineConfig({
         settings: {
           evmVersion: "paris",
           viaIR: true,
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
         },
       },
       production: {

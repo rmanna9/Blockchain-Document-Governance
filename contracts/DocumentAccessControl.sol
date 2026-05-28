@@ -332,6 +332,46 @@ contract DocumentAccessControl {
         emit ReadApproved(msg.sender, documentHash, block.timestamp);
     }
 
+    function canPresentExternally(
+        string calldata holderDID,
+        bytes32         documentHash
+    ) external view returns (bool) {
+        if (documentRegistry.getStatus(documentHash) == DocumentRegistry.DocumentStatus.Revoked) {
+            return false;
+        }
+        if (!didRegistry.isFullyActive(holderDID)) return false;
+
+        // Check direct permissions
+        bytes32[] storage perms = _userPermissions[holderDID];
+        for (uint256 i = 0; i < perms.length; i++) {
+            Permission storage p = _permissions[perms[i]];
+            if (
+                p.documentHash == documentHash &&
+                p.actionType   == ActionType.CanRead &&
+                p.isActive     &&
+                p.canDelegate  &&
+                p.delegableRead &&
+                (p.expiresAt == 0 || p.expiresAt > block.timestamp)
+            ) return true;
+        }
+
+        // Check received delegations
+        bytes32[] storage dels = _receivedDelegations[holderDID];
+        for (uint256 i = 0; i < dels.length; i++) {
+            Delegation storage d = _delegations[dels[i]];
+            if (
+                d.documentHash == documentHash &&
+                d.actionType   == ActionType.CanRead &&
+                d.isActive     &&
+                d.canDelegate  &&
+                d.delegableRead &&
+                (d.expiresAt == 0 || d.expiresAt > block.timestamp)
+            ) return true;
+        }
+
+        return false;
+    }
+
     // ── Revocation ───────────────────────────────────────────────────────────
 
     /**

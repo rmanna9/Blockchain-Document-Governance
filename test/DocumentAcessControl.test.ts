@@ -670,4 +670,87 @@ describe("DocumentAccessControl", async () => {
       )
     );
   });
+
+  // ── canPresentExternally — WP2 §External Verification ────────────────────
+
+  it("creator should be able to present externally — has delegable canRead", async () => {
+    const ctx = await setup();
+    await ctx.certifyDoc();
+
+    // Creator has canRead with canDelegate=true delegableRead=true
+    // assigned at certification — can present externally
+    const can = await ctx.accessControl.read.canPresentExternally([
+      "did:consortium:user-1", ctx.docHash
+    ]);
+    assert.equal(can, true);
+  });
+
+  it("user without canRead cannot present externally", async () => {
+    const ctx = await setup();
+    await ctx.certifyDoc();
+
+    const can = await ctx.accessControl.read.canPresentExternally([
+      "did:consortium:user-2", ctx.docHash
+    ]);
+    assert.equal(can, false);
+  });
+
+  it("delegatee with canDelegate=true can present externally", async () => {
+    const ctx = await setup();
+    await ctx.certifyDoc();
+
+    // user1 delegates canRead with canDelegate=true to user2
+    await ctx.accessControl.write.delegate(
+      ["did:consortium:user-2", ctx.docHash, 1, true, true, false, 0n],
+      { account: ctx.user1.account }
+    );
+
+    const can = await ctx.accessControl.read.canPresentExternally([
+      "did:consortium:user-2", ctx.docHash
+    ]);
+    assert.equal(can, true);
+  });
+
+  it("delegatee with canDelegate=false cannot present externally", async () => {
+    const ctx = await setup();
+    await ctx.certifyDoc();
+
+    // user1 delegates canRead with canDelegate=false to user2
+    await ctx.accessControl.write.delegate(
+      ["did:consortium:user-2", ctx.docHash, 1, false, false, false, 0n],
+      { account: ctx.user1.account }
+    );
+
+    const can = await ctx.accessControl.read.canPresentExternally([
+      "did:consortium:user-2", ctx.docHash
+    ]);
+    assert.equal(can, false);
+  });
+
+  it("canPresentExternally returns false if document is revoked", async () => {
+    const ctx = await setup();
+    await ctx.certifyDoc();
+
+    await ctx.documentRegistry.write.revoke(
+      [ctx.docHash, "revoked"],
+      { account: ctx.authorityA.account }
+    );
+
+    const can = await ctx.accessControl.read.canPresentExternally([
+      "did:consortium:user-1", ctx.docHash
+    ]);
+    assert.equal(can, false);
+  });
+
+  it("canPresentExternally returns false if holder authority is deactivated", async () => {
+    const ctx = await setup();
+    await ctx.certifyDoc();
+
+    await deactivateViaGovernance(ctx, "did:consortium:authority-a");
+
+    const can = await ctx.accessControl.read.canPresentExternally([
+      "did:consortium:user-1", ctx.docHash
+    ]);
+    assert.equal(can, false);
+  });
 });
