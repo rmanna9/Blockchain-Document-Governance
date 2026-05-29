@@ -295,7 +295,7 @@ describe("DocumentAccessControl", async () => {
     await ctx.certifyDoc();
 
     await ctx.accessControl.write.delegate(
-      ["did:consortium:user-2", ctx.docHash, 1, false, false, false, 0n],
+      ["did:consortium:user-2", ctx.docHash, 1, false, 0n],
       { account: ctx.user1.account }
     );
 
@@ -311,7 +311,7 @@ describe("DocumentAccessControl", async () => {
 
     await assert.rejects(
       ctx.accessControl.write.delegate(
-        ["did:consortium:user-2", ctx.docHash, 0, false, false, false, 0n],
+        ["did:consortium:user-2", ctx.docHash, 0, false, 0n],
         { account: ctx.user1.account }
       )
     );
@@ -323,7 +323,7 @@ describe("DocumentAccessControl", async () => {
 
     await assert.rejects(
       ctx.accessControl.write.delegate(
-        ["did:consortium:user-3", ctx.docHash, 1, false, false, false, 0n],
+        ["did:consortium:user-3", ctx.docHash, 1, false, 0n],
         { account: ctx.user2.account }
       )
     );
@@ -337,7 +337,7 @@ describe("DocumentAccessControl", async () => {
 
     await assert.rejects(
       ctx.accessControl.write.delegate(
-        ["did:consortium:user-2", ctx.docHash, 1, false, false, false, 0n],
+        ["did:consortium:user-2", ctx.docHash, 1, false, 0n],
         { account: ctx.user1.account }
       )
     );
@@ -349,7 +349,7 @@ describe("DocumentAccessControl", async () => {
 
     // Delegate canRead to user2 while everything is active
     await ctx.accessControl.write.delegate(
-      ["did:consortium:user-2", ctx.docHash, 1, false, false, false, 0n],
+      ["did:consortium:user-2", ctx.docHash, 1, false, 0n],
       { account: ctx.user1.account }
     );
 
@@ -379,7 +379,7 @@ describe("DocumentAccessControl", async () => {
 
     // user1 delegates to user2
     await ctx.accessControl.write.delegate(
-      ["did:consortium:user-2", ctx.docHash, 1, false, false, false, 0n],
+      ["did:consortium:user-2", ctx.docHash, 1, false, 0n],
       { account: ctx.user1.account }
     );
 
@@ -422,13 +422,13 @@ describe("DocumentAccessControl", async () => {
 
     // user1 delegates to user2 with canDelegate=true
     await ctx.accessControl.write.delegate(
-      ["did:consortium:user-2", ctx.docHash, 1, true, true, false, 0n],
+      ["did:consortium:user-2", ctx.docHash, 1, true, 0n],
       { account: ctx.user1.account }
     );
 
     // user2 delegates to user3
     await ctx.accessControl.write.delegate(
-      ["did:consortium:user-3", ctx.docHash, 1, false, false, false, 0n],
+      ["did:consortium:user-3", ctx.docHash, 1, false, 0n],
       { account: ctx.user2.account }
     );
 
@@ -493,7 +493,7 @@ describe("DocumentAccessControl", async () => {
 
     // user1 delegates to user2
     await ctx.accessControl.write.delegate(
-      ["did:consortium:user-2", ctx.docHash, 1, false, false, false, 0n],
+      ["did:consortium:user-2", ctx.docHash, 1, false, 0n],
       { account: ctx.user1.account }
     );
 
@@ -557,11 +557,11 @@ describe("DocumentAccessControl", async () => {
 
     // user1 → user2 (canDelegate=true) → user3
     await ctx.accessControl.write.delegate(
-      ["did:consortium:user-2", ctx.docHash, 1, true, true, false, 0n],
+      ["did:consortium:user-2", ctx.docHash, 1, true, 0n],
       { account: ctx.user1.account }
     );
     await ctx.accessControl.write.delegate(
-      ["did:consortium:user-3", ctx.docHash, 1, false, false, false, 0n],
+      ["did:consortium:user-3", ctx.docHash, 1, false, 0n],
       { account: ctx.user2.account }
     );
 
@@ -599,7 +599,7 @@ describe("DocumentAccessControl", async () => {
     // user1 cannot delegate to deactivated user2
     await assert.rejects(
       ctx.accessControl.write.delegate(
-        ["did:consortium:user-2", ctx.docHash, 1, false, false, false, 0n],
+        ["did:consortium:user-2", ctx.docHash, 1, false, 0n],
         { account: ctx.user1.account }
       )
     );
@@ -618,7 +618,7 @@ describe("DocumentAccessControl", async () => {
     // user1 deactivated — cannot delegate
     await assert.rejects(
       ctx.accessControl.write.delegate(
-        ["did:consortium:user-2", ctx.docHash, 1, false, false, false, 0n],
+        ["did:consortium:user-2", ctx.docHash, 1, false, 0n],
         { account: ctx.user1.account }
       )
     );
