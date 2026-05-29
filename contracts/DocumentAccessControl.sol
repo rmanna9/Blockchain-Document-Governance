@@ -24,9 +24,7 @@ contract DocumentAccessControl {
         bytes32    documentHash;
         ActionType actionType;
         address    issuerAddress;
-        bool       canDelegate;
-        bool       delegableRead;
-        bool       delegableUpdate;
+        bool       canDelegate; 
         uint256    issuedAt;
         uint256    expiresAt;
         bool       isActive;
@@ -40,8 +38,6 @@ contract DocumentAccessControl {
         bytes32    documentHash;
         ActionType actionType;
         bool       canDelegate;
-        bool       delegableRead;
-        bool       delegableUpdate;
         uint256    issuedAt;
         uint256    expiresAt;
         bool       isActive;
@@ -140,8 +136,6 @@ contract DocumentAccessControl {
             actionType:      ActionType.CanCreate,
             issuerAddress:   msg.sender,
             canDelegate:     false,
-            delegableRead:   false,
-            delegableUpdate: false,
             issuedAt:        block.timestamp,
             expiresAt:       expiresAt,
             isActive:        true
@@ -194,11 +188,11 @@ contract DocumentAccessControl {
     ) external {
         require(msg.sender == address(documentRegistry), "DAC: only DocumentRegistry");
 
-        _grantDocumentPermission(documentHash, creatorDID, ActionType.CanRead,   certifyingAuthority, true, true, true,  0);
-        _grantDocumentPermission(documentHash, creatorDID, ActionType.CanUpdate, certifyingAuthority, true, true, false, 0);
+        _grantDocumentPermission(documentHash, creatorDID, ActionType.CanRead,   certifyingAuthority, true, 0);
+        _grantDocumentPermission(documentHash, creatorDID, ActionType.CanUpdate, certifyingAuthority, true, 0);
 
         if (keccak256(bytes(ownerDID)) != keccak256(bytes(creatorDID))) {
-            _grantDocumentPermission(documentHash, ownerDID, ActionType.CanRead, certifyingAuthority, true, true, false, 0);
+            _grantDocumentPermission(documentHash, ownerDID, ActionType.CanRead, certifyingAuthority, true, 0);
         }
     }
 
@@ -214,8 +208,6 @@ contract DocumentAccessControl {
         bytes32           documentHash,
         ActionType        actionType,
         bool              canDelegate_,
-        bool              delegableRead_,
-        bool              delegableUpdate_,
         uint256           expiresAt
     ) external validDID(delegateeDID) returns (bytes32 delegationId) {
         require(actionType != ActionType.CanCreate, "DAC: canCreate is not delegable");
@@ -235,8 +227,7 @@ contract DocumentAccessControl {
         );
 
         bytes32 parentId = _findActiveParent(
-            delegatorDID, documentHash, actionType,
-            canDelegate_, delegableRead_, delegableUpdate_
+            delegatorDID, documentHash, actionType
         );
         require(parentId != bytes32(0), "DAC: no valid parent permission found");
 
@@ -252,8 +243,6 @@ contract DocumentAccessControl {
             documentHash:    documentHash,
             actionType:      actionType,
             canDelegate:     canDelegate_,
-            delegableRead:   delegableRead_,
-            delegableUpdate: delegableUpdate_,
             issuedAt:        block.timestamp,
             expiresAt:       expiresAt,
             isActive:        true
@@ -350,7 +339,6 @@ contract DocumentAccessControl {
                 p.actionType   == ActionType.CanRead &&
                 p.isActive     &&
                 p.canDelegate  &&
-                p.delegableRead &&
                 (p.expiresAt == 0 || p.expiresAt > block.timestamp)
             ) return true;
         }
@@ -364,7 +352,6 @@ contract DocumentAccessControl {
                 d.actionType   == ActionType.CanRead &&
                 d.isActive     &&
                 d.canDelegate  &&
-                d.delegableRead &&
                 (d.expiresAt == 0 || d.expiresAt > block.timestamp)
             ) return true;
         }
@@ -497,8 +484,6 @@ contract DocumentAccessControl {
         ActionType    actionType,
         address       issuer,
         bool          canDelegate_,
-        bool          delegableRead_,
-        bool          delegableUpdate_,
         uint256       expiresAt
     ) internal {
         bytes32 permId = keccak256(abi.encodePacked(
@@ -512,8 +497,6 @@ contract DocumentAccessControl {
             actionType:      actionType,
             issuerAddress:   issuer,
             canDelegate:     canDelegate_,
-            delegableRead:   delegableRead_,
-            delegableUpdate: delegableUpdate_,
             issuedAt:        block.timestamp,
             expiresAt:       expiresAt,
             isActive:        true
@@ -526,10 +509,7 @@ contract DocumentAccessControl {
     function _findActiveParent(
         string memory delegatorDID,
         bytes32       documentHash,
-        ActionType    actionType,
-        bool          canDelegate_,
-        bool          delegableRead_,
-        bool          delegableUpdate_
+        ActionType    actionType
     ) internal view returns (bytes32) {
         bytes32[] storage perms = _userPermissions[delegatorDID];
         for (uint256 i = 0; i < perms.length; i++) {
@@ -541,10 +521,6 @@ contract DocumentAccessControl {
                 p.canDelegate  &&
                 (p.expiresAt == 0 || p.expiresAt > block.timestamp)
             ) {
-                if (canDelegate_) {
-                    if (delegableRead_   && !p.delegableRead)   continue;
-                    if (delegableUpdate_ && !p.delegableUpdate) continue;
-                }
                 return p.permissionId;
             }
         }
@@ -559,10 +535,6 @@ contract DocumentAccessControl {
                 d.canDelegate  &&
                 (d.expiresAt == 0 || d.expiresAt > block.timestamp)
             ) {
-                if (canDelegate_) {
-                    if (delegableRead_   && !d.delegableRead)   continue;
-                    if (delegableUpdate_ && !d.delegableUpdate) continue;
-                }
                 return d.delegationId;
             }
         }

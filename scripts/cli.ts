@@ -165,7 +165,8 @@ async function opRegisterUser() {
 
   const acct = ACCOUNTS[acctName];
   const auth = ACCOUNTS[authName];
-  if (!acct || !auth) { console.log("✗ Unknown account"); return; }
+  if (!auth) { console.log("✗ Unknown authority"); return; }
+  if (!acct) { console.log("✗ Unknown user account"); return; }
 
   const { privateKey: rsaPriv, publicKey: rsaPub } = generateRSAKeyPair();
 
