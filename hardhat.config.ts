@@ -31,7 +31,12 @@ export default defineConfig({
     ganache: {
       type: "http",
       chainType: "l1",
-      url: "http://ganache:8545",
+      url: "http://127.0.0.1:8545",
+      chainId: 1337,
+      accounts: {
+        mnemonic: "test test test test test test test test test test test junk",
+        count: 10,
+      },
     },
     hardhatMainnet: {
       type: "edr-simulated",
