@@ -1,69 +1,41 @@
-## [12:30:25] Register User
+## [12:29:47] Resolve DID
 - did: did:consortium:user-1
-- account: user-1
-- authority: authority-a
 - result: ✓ SUCCESS
-- tx: 0x1a768b7fcb662f9052f05a91588cd48561e5b53b205b343c77af5c2483fb5d7a
 
-## [12:30:49] Grant canCreate
+## [12:30:08] Check canCreate Permission
 - holderDID: did:consortium:user-1
-- authority: authority-a
-- result: ✓ SUCCESS
-- tx: 0x94889caa449ce27d8b6326ade4a86452739c4ac69124bcd921dd5e1241cb691a
+- actionType: 0
+- result: ✓ true
 
-## [12:31:17] Request Certification
+## [12:30:44] Request Certification
 - did: did:consortium:user-1
-- docHash: 0x44d13e3f5168655e1d0b42ef3286fe1f692a48c9e5473594dad1164a06e5065e
+- docHash: 0x8fb6f46cda60b29b34a8549d1ae716b1313e4993b0ec2fb7b41e2cf7ef224ba9
 - result: ✓ SUCCESS
-- tx: 0x7ca216b748688b6df122544e09822a531105e1fe3cdf7aa812f683b8c818622b
+- tx: 0x1ed7a386a344653a75161c85fad50fbcaea9cc6975aa69c935e04fb7642d535b
+
+## [12:33:10] Get Document Status
+- docHash: 0x8fb6f46cda60b29b34a8549d1ae716b1313e4993b0ec2fb7b41e2cf7ef224ba9
+- result: ✓ Pending
+
+## [12:33:46] Certify Document
+- docHash: 0x8fb6f46cda60b29b34a8549d1ae716b1313e4993b0ec2fb7b41e2cf7ef224ba9
+- result: ✗ FAILED: VM Exception while processing transaction: revert DocumentRegistry: caller is not creator's domain authority
 
 ## [ORACLE] Archival Workflow — DocumentCertified
-- documentHash: 0x44d13e3f5168655e1d0b42ef3286fe1f692a48c9e5473594dad1164a06e5065e
-- block: 21
-- CID: bafkreif3yo5iwszpmrtgjs4otev2bswiavnn56z345wojmcywvl63mea5q
+- documentHash: 0x8fb6f46cda60b29b34a8549d1ae716b1313e4993b0ec2fb7b41e2cf7ef224ba9
+- block: 24
+- CID: bafkreihyuovgku7k6x4lrqhch2z6fsvcgqgxdn4htgrfvjqemvnvtjykma
 - pinned: true
 - shares: 3  threshold: 2
-- txSharesStored: 0xb8b647ba8bf9bb49cf36af4eefa4ad6f16ec666c9c6f8891aad6ac319b65ece9
-- txCIDStored: 0x86642c9ca9b508e2c209eb37f2aa50312f65b2ca242c647cb3b8610ecf5720dd
+- txSharesStored: 0x890258dffde46b15d79e04f08969ac6376ecd12cd281947336545deebefb3bbc
+- txCIDStored: 0x0b6bfaee91fb1c0f4ce3ec7d0ac444d3039edcfd4aed4c40e47aaf262fe0b45e
 
-## [12:31:53] Certify Document
-- docHash: 0x44d13e3f5168655e1d0b42ef3286fe1f692a48c9e5473594dad1164a06e5065e
+## [12:34:07] Certify Document
+- docHash: 0x8fb6f46cda60b29b34a8549d1ae716b1313e4993b0ec2fb7b41e2cf7ef224ba9
 - authority: authority-a
 - result: ✓ SUCCESS
-- tx: 0x196455040e7ae19f29b66ecf4b8e2b623e4beac75019c80ed8483f3145c94686
+- tx: 0x5c85a0b8a8691885a9c8591ab9569f04e95ace2b67cdcdfa0796aada192e077d
 
-## [12:32:59] Retrieve Document
-- docHash: 0x44d13e3f5168655e1d0b42ef3286fe1f692a48c9e5473594dad1164a06e5065e
-- account: user-1
-- callerDID: did:consortium:user-1
-- result: ✓ SUCCESS
-- tx: 0x3882553d0238c7f8eb14bd69f9c503a43f28424a24c2791b4235fb47d9412b4b
-- content: CiaoQuestaEunaProva!!!
-
-## [GOVERNANCE] Forced Read
-- documentHash: 0x44d13e3f5168655e1d0b42ef3286fe1f692a48c9e5473594dad1164a06e5065e
-- sharesUsed: 2  threshold: 2
-- k_doc reconstructed: true
-- CID: bafkreif3yo5iwszpmrtgjs4otev2bswiavnn56z345wojmcywvl63mea5q
-- content: CiaoQuestaEunaProva!!!
-
-## [12:34:39] Forced Read (Governance)
-- docHash: 0x44d13e3f5168655e1d0b42ef3286fe1f692a48c9e5473594dad1164a06e5065e
-- result: ✓ SUCCESS
-- cid: bafkreif3yo5iwszpmrtgjs4otev2bswiavnn56z345wojmcywvl63mea5q
-- sharesUsed: 2
-
-## [ORACLE INBOUND] External Verification
-- did_A: did:consortium:authority-a
-- did_U: did:consortium:user-1
-- documentHash: 0x44d13e3f5168655e1d0b42ef3286fe1f692a48c9e5473594dad1164a06e5065e
-- canPresentExternally: true
-- H(metadata): 51c4a67219649472a8ba074f91275ffe514e1613cc0b19ec30a47e0431980560
-
-## [12:35:51] External Verify
-- docHash: 0x44d13e3f5168655e1d0b42ef3286fe1f692a48c9e5473594dad1164a06e5065e
-- didA: did:consortium:authority-a
-- didU: did:consortium:user-1
-- result: ✓ VALID
-- sigValid: true
-- phase7: match=true
+## [12:34:51] Get Document Status
+- docHash: 0x8fb6f46cda60b29b34a8549d1ae716b1313e4993b0ec2fb7b41e2cf7ef224ba9
+- result: ✓ Certified

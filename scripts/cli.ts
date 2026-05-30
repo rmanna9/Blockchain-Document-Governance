@@ -144,7 +144,7 @@ function ask(q: string): Promise<string> {
 }
 
 function errMsg(e: any): string {
-  return e?.shortMessage ?? e?.message ?? String(e);
+  return e?.details ?? e?.cause?.shortMessage ?? e?.shortMessage ?? e?.message ?? String(e);
 }
 
 // helper: map certifiedBy address → authority letter (a/b/c)
@@ -273,7 +273,7 @@ async function opRequestCertification() {
   const docText  = await ask("Document content: ");
   const acctName = await ask("Account name: ");
   const auth     = ACCOUNTS[acctName];
-  if (!auth) { console.log("✗ Unknown account"); return; }
+  if (!auth) { console.log("✗ Unknown user account"); return; }
 
   const docBuf  = Buffer.from(docText);
   const docHash = keccak256(new Uint8Array(docBuf)) as `0x${string}`;
@@ -480,7 +480,7 @@ async function opGrantCreate() {
   const holderDID = await ask("Holder DID: ");
   const authName  = await ask("Authority account: ");
   const auth      = ACCOUNTS[authName];
-  if (!auth) { console.log("✗ Unknown account"); return; }
+  if (!auth) { console.log("✗ Unknown domain authority"); return; }
   try {
     const c  = makeContracts(auth.privateKey);
     const tx = await c.accessControl.write.grantCreate([holderDID, 0n]);
@@ -535,13 +535,24 @@ async function opCheckPermission() {
   const docHash   = await ask("Document hash (0x...): ") as `0x${string}`;
   const actionRaw = await ask("Action type (0=CanCreate, 1=CanRead, 2=CanUpdate): ");
   try {
-    const c   = makeContracts(ACCOUNTS["deployer"].privateKey);
-    const has = await c.accessControl.read.hasPermission([holderDID, docHash, Number(actionRaw)]) as boolean;
-    console.log(`hasPermission: ${has}`);
-    appendReport("Check Permission", { holderDID, docHash, actionType: actionRaw }, `✓ ${has}`);
+    const action = Number(actionRaw);
+    if (action === 0) {
+      console.log("Checking canCreate permission...");
+      const c   = makeContracts(ACCOUNTS["deployer"].privateKey);
+      const has = await c.accessControl.read.hasCreatePermission([holderDID]) as boolean;
+      console.log(`hasCreatePermission: ${has}`);
+      appendReport("Check canCreate Permission", { holderDID, actionType: actionRaw }, `✓ ${has}`);
+      return;
+    } else {
+      console.log("Checking read/update permission...");
+      const c   = makeContracts(ACCOUNTS["deployer"].privateKey);
+      const has = await c.accessControl.read.hasPermission([holderDID, docHash, action]) as boolean;
+      console.log(`hasPermission: ${has}`);
+      appendReport("Check Permission", { holderDID, docHash, actionType: actionRaw }, `✓ ${has}`);
+    }
   } catch (e) {
     console.log(`✗ ${errMsg(e)}`);
-    appendReport("Check Permission", { holderDID, docHash }, `✗ FAILED: ${errMsg(e)}`);
+    appendReport("Check Permission", { holderDID, docHash, actionType: actionRaw }, `✗ FAILED: ${errMsg(e)}`);
   }
 }
 
