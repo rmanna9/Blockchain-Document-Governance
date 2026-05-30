@@ -4,7 +4,7 @@ import * as path      from "path";
 import * as nodeCrypto from "crypto";
 import {
   createPublicClient, createWalletClient, http, getContract,
-  keccak256, toHex, encodeFunctionData, decodeAbiParameters,
+  keccak256, toHex, encodeFunctionData, decodeAbiParameters, parseEventLogs,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { hardhat }             from "viem/chains";
@@ -147,6 +147,29 @@ function errMsg(e: any): string {
   return e?.details ?? e?.cause?.shortMessage ?? e?.shortMessage ?? e?.message ?? String(e);
 }
 
+async function printEvents(txHash: `0x${string}`, pub: any): Promise<void> {
+  try {
+    const receipt = await pub.waitForTransactionReceipt({ hash: txHash });
+    const allAbis = [
+      ...DIDRegistryABI.abi,
+      ...DocumentRegistryABI.abi,
+      ...DocumentAccessControlABI.abi,
+      ...GovernanceContractABI.abi,
+      ...KeyShareRegistryABI.abi,
+      ...AuditLogABI.abi,
+    ];
+    const logs = parseEventLogs({ abi: allAbis, logs: receipt.logs });
+    if (logs.length === 0) return;
+    console.log("  Events emitted:");
+    for (const log of logs) {
+      const args = Object.entries(log.args as Record<string, unknown>)
+        .map(([k, v]) => `${k}: ${typeof v === "bigint" ? v.toString() : v}`)
+        .join(", ");
+      console.log(`    [${log.eventName}] ${args}`);
+    }
+  } catch { /* silently ignore */ }
+}
+
 // helper: map certifiedBy address → authority letter (a/b/c)
 function authLetterFor(addr: string): "a" | "b" | "c" | null {
   const a = addr.toLowerCase();
@@ -175,6 +198,7 @@ async function opRegisterUser() {
     const tx = await c.didRegistry.write.registerUser([did, rsaPub, rsaPub, acct.address, 0n]);
     users.set(did, { address: acct.address, ethPrivateKey: acct.privateKey, rsaPrivateKey: rsaPriv, rsaPublicKey: rsaPub });
     console.log(`✓ User registered: ${did}  address: ${acct.address}`);
+    await printEvents(tx, c.pub);
     appendReport("Register User", { did, account: acctName, authority: authName }, "✓ SUCCESS", tx);
   } catch (e) {
     console.log(`✗ ${errMsg(e)}`);
@@ -232,6 +256,7 @@ async function opDeactivateDID() {
     const c  = makeContracts(auth.privateKey);
     const tx = await c.didRegistry.write.deactivate([did]);
     console.log(`✓ DID deactivated: ${did}`);
+    await printEvents(tx, c.pub);
     appendReport("Deactivate DID", { did, caller: acctName }, "✓ SUCCESS", tx);
   } catch (e) {
     console.log(`✗ ${errMsg(e)}`);
@@ -282,6 +307,7 @@ async function opRequestCertification() {
     const c  = makeContracts(auth.privateKey);
     const tx = await c.documentRegistry.write.requestCertification([docHash, ZERO_HASH, did]);
     console.log(`✓ Certification requested  documentHash: ${docHash}`);
+    await printEvents(tx, c.pub);
     appendReport("Request Certification", { did, docHash }, "✓ SUCCESS", tx);
   } catch (e) {
     console.log(`✗ ${errMsg(e)}`);
@@ -344,6 +370,7 @@ async function opCertifyDocument() {
     );
 
     console.log(`\n✓ Document certified and archived`);
+    await printEvents(txCertHash, c.pub);
     appendReport("Certify Document", { docHash, authority: authName }, "✓ SUCCESS", txCertHash);
   } catch (e) {
     console.log(`✗ ${errMsg(e)}`);
@@ -450,6 +477,7 @@ async function opRevokeDocument() {
       reportLines
     );
 
+    await printEvents(txHash, c.pub);
     appendReport("Revoke Document", { docHash, reason, authority: acctName }, "✓ SUCCESS", txHash);
   } catch (e) {
     console.log(`✗ ${errMsg(e)}`);
@@ -485,6 +513,7 @@ async function opGrantCreate() {
     const c  = makeContracts(auth.privateKey);
     const tx = await c.accessControl.write.grantCreate([holderDID, 0n]);
     console.log(`✓ canCreate granted to ${holderDID}`);
+    await printEvents(tx, c.pub);
     appendReport("Grant canCreate", { holderDID, authority: authName }, "✓ SUCCESS", tx);
   } catch (e) {
     console.log(`✗ ${errMsg(e)}`);
@@ -585,6 +614,7 @@ async function opVoteOnProposal() {
     const c  = makeContracts(auth.privateKey);
     const tx = await c.governance.write.castVote([proposalId, support]);
     console.log(`✓ Vote cast on proposal ${proposalId}`);
+    await printEvents(tx, c.pub);
     appendReport("Vote on Proposal", { proposalId: String(proposalId), support: String(support), voter: acctName }, "✓ SUCCESS", tx);
   } catch (e) {
     console.log(`✗ ${errMsg(e)}`);
@@ -604,6 +634,7 @@ async function opExecuteProposal() {
       ? await c.governance.write.queue([proposalId])
       : await c.governance.write.execute([proposalId]);
     console.log(`✓ Proposal ${proposalId} ${action}d`);
+    await printEvents(tx, c.pub);
     appendReport("Execute Proposal", { proposalId: String(proposalId), action }, "✓ SUCCESS", tx);
   } catch (e) {
     console.log(`✗ ${errMsg(e)}`);
