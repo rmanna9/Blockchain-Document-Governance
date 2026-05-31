@@ -250,8 +250,7 @@ describe("DIDRegistry", async () => {
     assert.equal(isActive, false);
   });
 
-  // ── Lazy authority check: isFullyActive() ─────────────────────────────────
-
+  
   it("isFullyActive should return true for active user with active authority", async () => {
     const ctx = await setup();
     await registerUser1(ctx);
@@ -273,7 +272,7 @@ describe("DIDRegistry", async () => {
     assert.equal(result, false);
   });
 
-  it("isFullyActive should return false for user whose authority was deactivated — lazy check", async () => {
+  it("isFullyActive should return false for user whose authority was deactivated", async () => {
     const ctx = await setup();
     await registerUser1(ctx);
 

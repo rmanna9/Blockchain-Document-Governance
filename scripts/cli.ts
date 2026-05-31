@@ -49,8 +49,8 @@ const ACCOUNTS: Record<string, { address: `0x${string}`; privateKey: `0x${string
   "authority-d": { address: "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65", privateKey: "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a" },
   "authority-e": { address: "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc", privateKey: "0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba" },
   "user-1":      { address: "0x976EA74026E726554dB657fA54763abd0C3a0aa9", privateKey: "0x92db14e403b83dfe3df233f83dfa3a0d7096f21ca9b0d6d6b8d88b2b4ec1564e" },
-  "user-2":      { address: "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955", privateKey: "0x4bbb98b5ef1bff2d6de9c43e2e4e56e67ba7975c0c4cd34f7dce9736d37ab6e9" },
-  "user-3":      { address: "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f", privateKey: "0xdbda1821b80551c9d65939329250132c0f83cd8db8d4e01d2b7e48ef1def1e0b" },
+  "user-2":      { address: "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955", privateKey: "0x4bbbf85ce3377467afe5d46f804f221813b2bb87f24d81f60f1fcdbf7cbf4356" },
+  "user-3":      { address: "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f", privateKey: "0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97" },
   "user-4":      { address: "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720", privateKey: "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6" },
 };
 
@@ -227,6 +227,7 @@ async function opRegisterAuthority() {
 
     const txPropose = await c.governance.write.propose([description, addresses.governanceContract, calldata, 1]);
     console.log(`✓ Proposal submitted: tx ${txPropose}`);
+    await printEvents(txPropose, c.pub);
 
     const proposalId = await (async () => {
       for (let i = 100n; i >= 1n; i--) {
@@ -402,6 +403,7 @@ async function opRetrieveDocument() {
       return;
     }
     console.log(`  ✓ ReadApproved  tx: ${txRead}`);
+    await printEvents(txRead as `0x${string}`, c.pub);
 
     // ── Phase 2: Lightweight auth simulation ─────────────────────────────
     console.log("\n  ── Phase 2: Lightweight Auth (nonce → sign sk_U → verify pk_U) ──────");
@@ -524,15 +526,16 @@ async function opGrantCreate() {
 async function opDelegatePermission() {
   const delegateeDID = await ask("Delegatee DID: ");
   const docHash      = await ask("Document hash (0x...): ") as `0x${string}`;
-  const actionRaw    = await ask("Action type (0=CanCreate, 1=CanRead, 2=CanUpdate): ");
+  const actionRaw    = await ask("Action type (1=CanRead, 2=CanUpdate): ");
   const canDelegate  = (await ask("canDelegate (y/n): ")) === "y";
   const acctName     = await ask("Delegator account: ");
   const auth         = ACCOUNTS[acctName];
   if (!auth) { console.log("✗ Unknown account"); return; }
   try {
     const c  = makeContracts(auth.privateKey);
-    const tx = await c.accessControl.write.delegate([delegateeDID, docHash, Number(actionRaw), canDelegate, false, false, 0n]);
+    const tx = await c.accessControl.write.delegate([delegateeDID, docHash, Number(actionRaw), canDelegate, 0n]);
     console.log(`✓ Permission delegated to ${delegateeDID}`);
+    await printEvents(tx as `0x${string}`, c.pub);
     appendReport("Delegate Permission", { delegateeDID, docHash, actionType: actionRaw }, "✓ SUCCESS", tx);
   } catch (e) {
     console.log(`✗ ${errMsg(e)}`);
@@ -552,6 +555,7 @@ async function opRevokePermission() {
       ? await c.accessControl.write.revokeDelegation([permId])
       : await c.accessControl.write.revokePermission([permId]);
     console.log(`✓ ${type_} revoked: ${permId}`);
+    await printEvents(tx as `0x${string}`, c.pub);
     appendReport("Revoke Permission", { id: permId, type: type_ }, "✓ SUCCESS", tx);
   } catch (e) {
     console.log(`✗ ${errMsg(e)}`);
@@ -597,6 +601,7 @@ async function opProposeAction() {
     const c  = makeContracts(auth.privateKey);
     const tx = await c.governance.write.propose([description, targetAddr, calldataHex, Number(thresholdRaw)]);
     console.log(`✓ Proposal submitted: ${tx}`);
+    await printEvents(tx, c.pub);
     appendReport("Propose Action", { description, target: targetAddr }, "✓ SUCCESS", tx);
   } catch (e) {
     console.log(`✗ ${errMsg(e)}`);
@@ -699,9 +704,10 @@ async function opExternalVerify() {
     console.log("\n  ── Phase 7: User decrypts c_meta with sk_U; verifier checks H(metadata) ─");
     const userEntry = users.get(didU);
     let phase7Result = "⚠ User sk_U not in session — cannot decrypt c_meta";
+    let decrypted: Buffer | null = null;
 
     if (userEntry) {
-      const decrypted  = decryptChallenge(result.cMeta, userEntry.rsaPrivateKey);
+      decrypted        = decryptChallenge(result.cMeta, userEntry.rsaPrivateKey);
       const recomputed = nodeCrypto.createHash("sha256").update(decrypted).digest("hex");
       const match      = recomputed === result.hMeta;
       console.log(`  ✓ Dec(sk_U, c_meta) succeeded  H(metadata) match: ${match}`);
@@ -713,6 +719,7 @@ async function opExternalVerify() {
 
     const outcome = sigValid ? "VALID" : "INVALID";
     console.log(`\n✓ External Verification complete — σ_A: ${outcome}`);
+    if (decrypted) console.log(`  Decrypted metadata: ${decrypted.toString("utf8")}`);
     appendReport("External Verify", { docHash, didA, didU }, `✓ ${outcome}`, undefined, { sigValid: String(sigValid), phase7: phase7Result });
   } catch (e) {
     console.log(`✗ ${errMsg(e)}`);

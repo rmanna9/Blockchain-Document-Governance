@@ -174,7 +174,7 @@ describe("DocumentAccessControl", async () => {
     );
   });
 
-  it("hasCreatePermission should return false if authority is deactivated — lazy check", async () => {
+  it("hasCreatePermission should return false if authority is deactivated", async () => {
     const ctx = await setup();
 
     await ctx.accessControl.write.grantCreate(
@@ -223,7 +223,7 @@ describe("DocumentAccessControl", async () => {
     assert.equal(hasRead, false);
   });
 
-  it("hasPermission should return false if holder authority is deactivated — lazy check", async () => {
+  it("hasPermission should return false if holder authority is deactivated", async () => {
     const ctx = await setup();
     await ctx.certifyDoc();
 
@@ -257,7 +257,7 @@ describe("DocumentAccessControl", async () => {
     );
   });
 
-  it("should reject read approval if user authority is deactivated — lazy check", async () => {
+  it("should reject read approval if user authority is deactivated", async () => {
     const ctx = await setup();
     await ctx.certifyDoc();
 
@@ -329,7 +329,7 @@ describe("DocumentAccessControl", async () => {
     );
   });
 
-  it("should reject delegation if delegator authority is deactivated — lazy check", async () => {
+  it("should reject delegation if delegator authority is deactivated", async () => {
     const ctx = await setup();
     await ctx.certifyDoc();
 
@@ -343,7 +343,7 @@ describe("DocumentAccessControl", async () => {
     );
   });
 
-  it("should reject checkAndApproveRead for delegatee with deactivated authority — lazy check", async () => {
+  it("should reject checkAndApproveRead for delegatee with deactivated authority", async () => {
     const ctx = await setup();
     await ctx.certifyDoc();
 
@@ -362,7 +362,7 @@ describe("DocumentAccessControl", async () => {
     // Now deactivate authorityA (domain of user2)
     await deactivateViaGovernance(ctx, "did:consortium:authority-a");
 
-    // user2 can no longer read — lazy check
+    // user2 can no longer read
     await assert.rejects(
       ctx.accessControl.write.checkAndApproveRead(
         [ctx.docHash],
@@ -518,15 +518,14 @@ describe("DocumentAccessControl", async () => {
     );
   });
 
-  // ── Lazy check: delegatee deactivated ────────────────────────────────────
-
+  
   it("should reject checkAndApproveRead for deactivated delegatee — user deactivated", async () => {
     const ctx = await setup();
     await ctx.certifyDoc();
 
     // user1 delegates to user2
     await ctx.accessControl.write.delegate(
-      ["did:consortium:user-2", ctx.docHash, 1, false, false, false, 0n],
+      ["did:consortium:user-2", ctx.docHash, 1, false, 0n],
       { account: ctx.user1.account }
     );
 
@@ -630,11 +629,11 @@ describe("DocumentAccessControl", async () => {
 
     // user1 (root) → user2 → user3
     await ctx.accessControl.write.delegate(
-      ["did:consortium:user-2", ctx.docHash, 1, true, true, false, 0n],
+      ["did:consortium:user-2", ctx.docHash, 1, true, 0n],
       { account: ctx.user1.account }
     );
     await ctx.accessControl.write.delegate(
-      ["did:consortium:user-3", ctx.docHash, 1, false, false, false, 0n],
+      ["did:consortium:user-3", ctx.docHash, 1, false, 0n],
       { account: ctx.user2.account }
     );
 
@@ -701,7 +700,7 @@ describe("DocumentAccessControl", async () => {
 
     // user1 delegates canRead with canDelegate=true to user2
     await ctx.accessControl.write.delegate(
-      ["did:consortium:user-2", ctx.docHash, 1, true, true, false, 0n],
+      ["did:consortium:user-2", ctx.docHash, 1, true, 0n],
       { account: ctx.user1.account }
     );
 
@@ -717,7 +716,7 @@ describe("DocumentAccessControl", async () => {
 
     // user1 delegates canRead with canDelegate=false to user2
     await ctx.accessControl.write.delegate(
-      ["did:consortium:user-2", ctx.docHash, 1, false, false, false, 0n],
+      ["did:consortium:user-2", ctx.docHash, 1, false, 0n],
       { account: ctx.user1.account }
     );
 

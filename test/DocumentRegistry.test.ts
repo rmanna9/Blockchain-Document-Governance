@@ -462,9 +462,8 @@ describe("DocumentRegistry", async () => {
     );
   });
 
-  // ── Lazy authority check on documents ─────────────────────────────────────
-
-  it("getStatus should return Revoked if certifying authority is deactivated — lazy check", async () => {
+  
+  it("getStatus should return Revoked if certifying authority is deactivated", async () => {
     const ctx = await setup();
 
     await certifyDoc(ctx, ctx.docHash, ctx.zero);
@@ -474,10 +473,10 @@ describe("DocumentRegistry", async () => {
 
     // Document is still Certified in storage but getStatus returns Revoked
     const status = await ctx.documentRegistry.read.getStatus([ctx.docHash]);
-    assert.equal(status, 2); // Revoked — lazy check
+    assert.equal(status, 2); // Revoked
   });
 
-  it("should reject requestCertification from user whose authority is deactivated — lazy check", async () => {
+  it("should reject requestCertification from user whose authority is deactivated", async () => {
     const ctx = await setup();
 
     // Deactivate authorityA
@@ -492,7 +491,7 @@ describe("DocumentRegistry", async () => {
     );
   });
 
-  it("should reject update from user with canUpdate but deactivated authority — lazy check", async () => {
+  it("should reject update from user with canUpdate but deactivated authority", async () => {
     const ctx = await setup();
 
     // Certify v1 while authorityA is active

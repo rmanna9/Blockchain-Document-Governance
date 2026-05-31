@@ -387,7 +387,7 @@ describe("GovernanceContract", async () => {
 
   // ── RF3: lazy check after authority removal ───────────────────────────────
 
-  it("should make users of removed authority isFullyActive=false — lazy check — RF3", async () => {
+  it("should make users of removed authority isFullyActive=false — RF3", async () => {
     const ctx = await setup();
 
     // Register user under authorityC
@@ -430,7 +430,7 @@ describe("GovernanceContract", async () => {
       true
     );
 
-    // But isFullyActive returns false — lazy check
+    // But isFullyActive returns false
     assert.equal(
       await ctx.didRegistry.read.isFullyActive(["did:consortium:user-c"]),
       false
