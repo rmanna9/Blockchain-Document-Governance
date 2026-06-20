@@ -128,13 +128,27 @@ npm install
 npx hardhat compile
 ```
 
-### Deploy contracts
+### Run tests
 
 ```bash
-npx hardhat run scripts/deploy.ts --network localhost
+npx hardhat test
 ```
 
-This writes deployed addresses to `shared/addresses.json`.
+### Deploy system on Ganache Desktop
+
+Before running the deployment, create a Ganache workspace with the following settings:
+
+| Setting | Value |
+|---|---|
+| **Port** | `8545` |
+| **Network ID** | `1337` |
+| **Mnemonic** | `test test test test test test test test test test test junk` |
+
+Then deploy:
+
+```bash
+npx hardhat run scripts/deploy.ts --network ganache
+```
 
 ### Run the CLI
 
@@ -143,42 +157,3 @@ npx tsx scripts/cli.ts
 ```
 
 The interactive menu guides you through the full document lifecycle: register DIDs, certify documents, upload to IPFS, manage key shares, request access, and trigger oracle workflows.
-
-### Run tests
-
-```bash
-npx hardhat test
-```
-
----
-
-## Key Workflows
-
-```
-1. Authority Registration
-   CLI → DIDRegistry.registerDID()
-
-2. Document Certification
-   CLI → encrypt(doc, AES key)
-         → IPFS upload (Helia) → CID
-         → SSS split(AES key) → RSA encrypt each share
-         → DocumentRegistry.certifyDocument(CID)
-         → KeyShareRegistry.storeShares(encryptedShares)
-
-3. Access Request
-   CLI → DocumentAccessControl.requestAccess()
-         → Oracle verifies request
-         → DocumentAccessControl.approveRead()
-
-4. Key Reconstruction (read)
-   CLI → collect threshold shares from KeyShareRegistry
-         → RSA decrypt each share
-         → SSS combine → AES key
-         → IPFS fetch (Helia) → AES decrypt → document
-```
-
----
-
-## License
-
-ISC — see [LICENSE](LICENSE) for details.
